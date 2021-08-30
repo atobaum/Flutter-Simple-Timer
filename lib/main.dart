@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:get/get.dart';
 import 'package:flutter_timer/controller/timer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_timer/widgets/Counter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -98,10 +100,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 }
 
 class TimerItem {
-  int time;
   String name;
+  int time;
 
   TimerItem({required this.name, required this.time});
+
+  String toJson() {
+    return jsonEncode({"name": name, "time": time});
+  }
+
+  TimerItem.fromMap(Map<String, dynamic> json)
+      : name = json['name'],
+        time = json['time'];
 }
 
 String formatTime(int second) {
@@ -112,30 +122,86 @@ String formatTime(int second) {
   return "$sec초";
 }
 
-class TimerList extends StatelessWidget {
-  final List<TimerItem> items = [
-    TimerItem(name: "기본", time: 5),
-    TimerItem(name: "홍차", time: 60 * 2 + 30),
-    TimerItem(name: "파스타", time: 60 * 9),
-  ];
-
+class TimerList extends StatefulWidget {
+  TimerList({required this.onClick});
   final void Function(TimerItem) onClick;
 
-  TimerList({required this.onClick});
+  @override
+  createState() => TimerListState(onClick: onClick);
+}
+
+class TimerListState extends State<TimerList> {
+  final prefKey = "timers";
+
+  List<TimerItem> items = [];
+  final void Function(TimerItem) onClick;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      var a = prefs.getStringList(prefKey);
+      // prefs.remove(prefKey);
+      print("saved items $a");
+
+      if (a == null) {
+        setState(() {
+          items = [
+            TimerItem(name: "기본", time: 5),
+            TimerItem(name: "홍차", time: 60 * 2 + 30),
+            TimerItem(name: "파스타", time: 60 * 9),
+          ];
+
+          prefs.setStringList(
+              prefKey, items.map((item) => item.toJson()).toList());
+        });
+      } else {
+        setState(() {
+          items = a
+              .map((s) => jsonDecode(s))
+              .map((json) => TimerItem.fromMap(json))
+              .toList();
+        });
+      }
+    });
+  }
+
+  TimerListState({required this.onClick});
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-        shrinkWrap: true,
-        itemCount: items.length,
-        itemBuilder: (ctx, index) {
-          var item = items[index];
-          return TextButton(
-              onPressed: () => onClick(item),
-              child: Row(
-                children: [Text(item.name), Text(formatTime(item.time))],
-              ));
-        });
+    return Column(
+      children: [
+        ListView.builder(
+            shrinkWrap: true,
+            itemCount: items.length,
+            itemBuilder: (ctx, index) {
+              var item = items[index];
+              return TextButton(
+                  onPressed: () => onClick(item),
+                  child: Row(
+                    children: [Text(item.name), Text(formatTime(item.time))],
+                  ));
+            }),
+        TextButton(
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            setState(() {
+              items.add(TimerItem(name: "new", time: 3));
+            });
+            prefs.setStringList(prefKey, items.map((e) => e.toJson()).toList());
+          },
+          child: Text("add"),
+        ),
+        TextButton(
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            prefs.remove(prefKey);
+          },
+          child: Text("remve all"),
+        )
+      ],
+    );
   }
 }
 
