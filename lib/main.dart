@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_timer/controller/timerList.dart';
 import 'package:flutter_timer/lib/formatTime.dart';
 import 'package:flutter_timer/model/timerItem.dart';
+import 'package:flutter_timer/pages/CreateTimerItemPage.dart';
 import 'package:get/get.dart';
 import 'package:flutter_timer/controller/timer.dart';
 import 'package:flutter/material.dart';
@@ -97,6 +98,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
+        onPressed: () {
+          Get.to(CreateTimerItemPage());
+        },
+      ),
     );
   }
 }
@@ -123,10 +130,10 @@ class TimerList extends StatelessWidget {
                     children: [
                       Text(item.name),
                       Text(formatTime(item.time)),
-        TextButton(
-          onPressed: () async {
+                      TextButton(
+                          onPressed: () async {
                             timerList.removeItem(item);
-          },
+                          },
                           child: Text("X"))
                     ],
                   ));
