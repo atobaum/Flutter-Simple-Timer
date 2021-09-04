@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_timer/controller/timer.dart';
-import 'package:flutter_timer/main.dart';
+import 'package:flutter_timer/lib/formatTime.dart';
 import 'package:get/get.dart';
 
 class Counter extends StatelessWidget {

@@ -1,13 +1,14 @@
-import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter_timer/controller/timerList.dart';
+import 'package:flutter_timer/lib/formatTime.dart';
+import 'package:flutter_timer/model/timerItem.dart';
 import 'package:get/get.dart';
 import 'package:flutter_timer/controller/timer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_timer/widgets/Counter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
   runApp(MyApp());
 }
 
@@ -15,8 +16,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Get.put(TimerController());
+    Get.put(TimerListController());
 
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -99,80 +101,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   }
 }
 
-class TimerItem {
-  String name;
-  int time;
+class TimerList extends StatelessWidget {
+  final void Function(TimerItem) onClick;
+  final TimerListController timerList = Get.find();
 
-  TimerItem({required this.name, required this.time});
-
-  String toJson() {
-    return jsonEncode({"name": name, "time": time});
-  }
-
-  TimerItem.fromMap(Map<String, dynamic> json)
-      : name = json['name'],
-        time = json['time'];
-}
-
-String formatTime(int second) {
-  int min = (second / 60).floor();
-  int sec = second % 60;
-  if (min > 0) return "$min분 $sec초";
-
-  return "$sec초";
-}
-
-class TimerList extends StatefulWidget {
   TimerList({required this.onClick});
-  final void Function(TimerItem) onClick;
-
-  @override
-  createState() => TimerListState(onClick: onClick);
-}
-
-class TimerListState extends State<TimerList> {
-  final prefKey = "timers";
-
-  List<TimerItem> items = [];
-  final void Function(TimerItem) onClick;
-
-  @override
-  void initState() {
-    super.initState();
-    SharedPreferences.getInstance().then((prefs) {
-      var a = prefs.getStringList(prefKey);
-      // prefs.remove(prefKey);
-      print("saved items $a");
-
-      if (a == null) {
-        setState(() {
-          items = [
-            TimerItem(name: "기본", time: 5),
-            TimerItem(name: "홍차", time: 60 * 2 + 30),
-            TimerItem(name: "파스타", time: 60 * 9),
-          ];
-
-          prefs.setStringList(
-              prefKey, items.map((item) => item.toJson()).toList());
-        });
-      } else {
-        setState(() {
-          items = a
-              .map((s) => jsonDecode(s))
-              .map((json) => TimerItem.fromMap(json))
-              .toList();
-        });
-      }
-    });
-  }
-
-  TimerListState({required this.onClick});
 
   @override
   Widget build(BuildContext context) {
+    var items = timerList.items;
     return Column(
       children: [
-        ListView.builder(
+        Obx(() => ListView.builder(
             shrinkWrap: true,
             itemCount: items.length,
             itemBuilder: (ctx, index) {
@@ -180,26 +120,17 @@ class TimerListState extends State<TimerList> {
               return TextButton(
                   onPressed: () => onClick(item),
                   child: Row(
-                    children: [Text(item.name), Text(formatTime(item.time))],
+                    children: [
+                      Text(item.name),
+                      Text(formatTime(item.time)),
+        TextButton(
+          onPressed: () async {
+                            timerList.removeItem(item);
+          },
+                          child: Text("X"))
+                    ],
                   ));
-            }),
-        TextButton(
-          onPressed: () async {
-            final prefs = await SharedPreferences.getInstance();
-            setState(() {
-              items.add(TimerItem(name: "new", time: 3));
-            });
-            prefs.setStringList(prefKey, items.map((e) => e.toJson()).toList());
-          },
-          child: Text("add"),
-        ),
-        TextButton(
-          onPressed: () async {
-            final prefs = await SharedPreferences.getInstance();
-            prefs.remove(prefKey);
-          },
-          child: Text("remve all"),
-        )
+            })),
       ],
     );
   }
